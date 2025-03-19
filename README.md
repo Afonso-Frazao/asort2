@@ -1,2 +1,2 @@
 # TODO
-- There is a problem with the insertion sort part
+- Create a python function to analyse the complexitty

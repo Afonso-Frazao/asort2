@@ -1,6 +1,4 @@
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "asort2.h"
 
 // Comment this out for possibly less ram usage for arrays with a wide value range
 #define RANGE
@@ -10,52 +8,6 @@ struct unit{
 	unsigned int count;
 };
 
-int asort2(int *arr, unsigned int arr_size, float mem_mult);
-
-int normalizeArray(int *arr, unsigned int arr_size, int *zero);
-
-int main(int argc, char *argv[])
-{
-	if (argc != 3){
-		printf("Usage: './asort2 arr_size mem_mult'\n\n");
-		exit(1);
-	}
-
-	// Get the size of the random number array
-	unsigned int arr_size = atoi(argv[1]);
-
-	// Get the memory multiplier
-	float mem_mult = atof(argv[2]);
-
-	FILE *fp;
-	fp = fopen("/dev/urandom", "r");
-	if (fp == NULL){
-		printf("Error opening /dev/urandom\n\n");
-		exit(1);
-	}
-
-	unsigned int seed;
-
-	// Get a rendom value for the random number generator seed
-	fread(&seed, 1, sizeof(seed), fp);
-	printf("seed: %u\n", seed);
-	srand(seed);
-
-	// I'm using int's to exeplify the function
-	int *arr = (int *) malloc(arr_size * sizeof(int));
-	for (unsigned int i = 0; i < arr_size; i++){
-		arr[i] = rand() % arr_size;
-	}
-
-	int ret = asort2((void *) arr, arr_size, mem_mult);
-	if (ret != 0){
-		printf("There was an error in the sortting function!\n\n");
-		exit(1);
-	}
-
-	return 0;
-}
-
 // The memory multiplier has to be greatest or equal to 1
 int asort2(int *arr, unsigned int arr_size, float mem_mult)
 {
@@ -63,14 +15,15 @@ int asort2(int *arr, unsigned int arr_size, float mem_mult)
 		return 1;
 	}
 
-	// Get a flag for if there is a 0 value on the array
-	int zero = 0;
-	int range = normalizeArray(arr, arr_size, &zero);
+	int offset;
+	int range = normalizeArray(arr, arr_size, &offset);
 
 	#ifdef RANGE
-		unsigned int hash_table_size = (int) (range * mem_mult);
+		unsigned int hash_table_size = (int) ((range + 1) * mem_mult);
 		struct unit *hash_table = (struct unit *) calloc(hash_table_size, sizeof(struct unit));
-		int hash = range;
+
+		// Add 1 so it produces numbers from 0 to range
+		int hash = range + 2;
 	#else
 		int hash_table_size = (int) (arr_size * mem_mult);
 		struct unit *hash_table = (struct unit *) calloc(hash_table_size, sizeof(struct unit));
@@ -83,10 +36,9 @@ int asort2(int *arr, unsigned int arr_size, float mem_mult)
 	// Number of different values
 	unsigned int diff_value_cnt = 0;
 
-	// If there is a zero value on the array it won't be accountted without this condition
-	if (zero == 1){
-		diff_value_cnt++;
-	}
+	// There is always a zero value on the array that won't be accountted without this condition
+	// because of the normalization of the array
+	diff_value_cnt++;
 
 	for (unsigned int i = 0; i < arr_size; i++){
 		int cur_value = arr[i];
@@ -139,45 +91,38 @@ int asort2(int *arr, unsigned int arr_size, float mem_mult)
 		}
 	}
 
-	printf("diff value count: %d\n", diff_value_cnt);
-
-	for (int i = 0; i < arr_size; i++){
-		printf("%d\t", arr[i]);
-	}
-	printf("\n\n");
-
-	for (int i = 0; i < hash_table_size; i++){
-		printf("%d\t", hash_table[i].value);
-	}
-	printf("\n\n");
-
-	for (int i = 0; i < diff_value_cnt; i++){
-		printf("%d\t", cleared_hash_table[i].value);
-	}
-	printf("\n\n");
+	free(hash_table);
 
 	// Now I'll use insertion sort to sort the hashed and cleared array
 	for(unsigned int i = 1; i < diff_value_cnt; i++){
 		struct unit cur_value = cleared_hash_table[i];
-		for(int j = i-1; j >= 0; j--){
+		int j;
+		for(j = i-1; j >= 0; j--){
 			if(cleared_hash_table[j].value < cur_value.value){
 				cleared_hash_table[j+1] = cur_value;
 				break;
 			}
 			cleared_hash_table[j+1] = cleared_hash_table[j];
 		}
+		if (j == -1){
+			cleared_hash_table[0] = cur_value;
+		}
 	}
 
-	for (int i = 0; i < diff_value_cnt; i++){
-		printf("%d\t", cleared_hash_table[i].value);
+	for (int i = 0, j = 0; i < diff_value_cnt; i++){
+		for (int k = 0; k < cleared_hash_table[i].count; k++){
+			arr[j] = cleared_hash_table[i].value + offset;
+			j++;
+		}
 	}
-	printf("\n\n");
+
+	free(cleared_hash_table);
 
 	return 0;
 }
 
 // Returns the array range (max - min) and makes the power value of the array 0
-int normalizeArray(int *arr, unsigned int arr_size, int *zero){
+int normalizeArray(int *arr, unsigned int arr_size, int *offset){
 	int min = arr[0];
 	int max = arr[0];
 	for (int i = 1; i < arr_size; i++){
@@ -193,18 +138,10 @@ int normalizeArray(int *arr, unsigned int arr_size, int *zero){
 	if (min != 0){
 		for (int i = 0; i < arr_size; i++){
 			arr[i] -= min;
-			if (arr[i] == 0){
-				*zero = 1;
-			}
-		}
-	} else {
-		for (int i = 0; i < arr_size; i++){
-			if (arr[i] == 0){
-				*zero = 1;
-				break;
-			}
 		}
 	}
+
+	*offset = min;
 
 	return max - min;
 }
