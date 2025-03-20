@@ -5,8 +5,8 @@ int cmpfunc(const void *a, const void *b);
 
 int main(int argc, char *argv[])
 {
-	if (argc != 3){
-		printf("Usage: './asort2 arr_size mem_mult'\n\n");
+	if (argc != 4){
+		printf("Usage: './asort2 arr_size mem_mult a/q'\n\n");
 		exit(1);
 	}
 
@@ -30,36 +30,26 @@ int main(int argc, char *argv[])
 	srand(seed);
 
 	// I'm using int's to exeplify the function
-	int *arr1 = (int *) malloc(arr_size * sizeof(int));
-	int *arr2 = (int *) malloc(arr_size * sizeof(int));
-	int *arr3 = (int *) malloc(arr_size * sizeof(int));
+	int *arr = (int *) malloc(arr_size * sizeof(int));
 	for (unsigned int i = 0; i < arr_size; i++){
-		arr1[i] = rand() % arr_size;
-		arr2[i] = arr1[i];
-		arr3[i] = arr1[i];
+		arr[i] = rand() % arr_size;
 	}
 
-	int ret = asort2((void *) arr2, arr_size, mem_mult);
-	if (ret != 0){
-		printf("There was an error in the sortting function!\n\n");
-		exit(1);
-	}
+	fclose(fp);
 
-	qsort(arr3, arr_size, sizeof(*arr3), cmpfunc);
-
-	for (int i = 0; i < arr_size; i++){
-		if(arr2[i] != arr3[i]){
-			printf("There was an error in the sortting function\n");
-			printf("seed: %u\n", seed);
-			for (int j = 0; j < arr_size; j++){
-				printf("%d %d %d\n", arr1[j], arr2[j], arr3[j]);
-			}
+	if (argv[3][0] == 'a'){
+		int ret = asort2((void *) arr, arr_size, mem_mult);
+		if (ret != 0){
+			printf("There was an error in the sortting function!\n\n");
+			exit(1);
 		}
 	}
 
-	free(arr1);
-	free(arr2);
-	free(arr3);
+	if (argv[3][0] == 'q'){
+		qsort(arr, arr_size, sizeof(*arr), cmpfunc);
+	}
+
+	free(arr);
 
 	return 0;
 }
