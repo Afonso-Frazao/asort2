@@ -5,6 +5,6 @@
 
 int asort2(int *arr, unsigned int arr_size, float mem_mult);
 
-int normalizeArray(int *arr, unsigned int arr_size, int *offset);
+unsigned int evaluateArray(int *arr, unsigned int arr_size, int *min, int *max);
 
 #endif
